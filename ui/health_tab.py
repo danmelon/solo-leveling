@@ -14,20 +14,24 @@ from datetime import date
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QFrame, QGridLayout, QComboBox, QSpinBox,
-    QTextEdit, QSizePolicy, QDialog, QDialogButtonBox
+    QTextEdit, QSizePolicy, QDialog, QDialogButtonBox,
+    QGraphicsDropShadowEffect, QApplication
 )
 from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QFontDatabase
 
 import models
+from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
 
 # ── Palette ────────────────────────────────────────────────────────────────
-C_BG       = "#181825"
-C_SURFACE  = "#1e1e2e"
-C_SURFACE2 = "#313244"
-C_TEXT     = "#cdd6f4"
+C_BG       = "#050a0f"
+C_SURFACE  = "rgba(10, 25, 35, 200)" # Glassmorphism effect
+C_SURFACE2 = "rgba(20, 45, 65, 150)"
+C_TEXT     = "#ffffff"
 C_MUTED    = "#6c7086"
-C_ACCENT   = "#cba6f7"   # purple
+C_ACCENT   = "#00d4ff"       # Electric Blue
+C_BORDER   = "#00d4ff"
+C_MUTED    = "#507a8a"
 C_GREEN    = "#a6e3a1"
 C_RED      = "#f38ba8"
 C_YELLOW   = "#f9e2af"
@@ -39,16 +43,25 @@ def card(parent=None) -> QFrame:
     f.setStyleSheet(f"""
         QFrame {{
             background: {C_SURFACE};
-            border-radius: 12px;
-            padding: 4px;
+            border: 1px solid {C_BORDER};
+            border-top: 3px solid {C_ACCENT};
+            border-radius: 0px;
+            padding: 8px;
         }}
     """)
+    # Add the glow effect
+    shadow = QGraphicsDropShadowEffect()
+    shadow.setBlurRadius(15)
+    shadow.setColor(QColor(0, 212, 255, 100))
+    shadow.setOffset(0, 0)
+    f.setGraphicsEffect(shadow)
+    
     return f
 
 
 def h_label(text, size=13, bold=False, color=C_TEXT) -> QLabel:
     lbl = QLabel(text)
-    font = QFont("Arial", size)
+    font = QFont(["Consolas", "Monospace", "Courier New"], size)
     if bold:
         font.setWeight(QFont.Weight.Bold)
     lbl.setFont(font)
@@ -71,11 +84,14 @@ class XPBar(QWidget):
         bar_col = QVBoxLayout()
         self.xp_lbl = h_label("0 / 100 XP", 10, color=C_MUTED)
         self.bar_bg = QFrame()
-        self.bar_bg.setFixedHeight(14)
-        self.bar_bg.setStyleSheet(f"background: {C_SURFACE2}; border-radius: 7px;")
+        self.bar_bg.setFixedHeight(10) # Thinner is more modern/HUD-like
+        self.bar_bg.setStyleSheet(f"background: #0d2a35; border: 1px solid {C_ACCENT}; border-radius: 0px;")
         self.bar_fill = QFrame(self.bar_bg)
-        self.bar_fill.setStyleSheet(f"background: {C_ACCENT}; border-radius: 7px;")
-        self.bar_fill.setFixedHeight(14)
+        self.bar_fill.setStyleSheet(f"""
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                        stop:0 #005f73, stop:1 {C_ACCENT});
+            border-radius: 0px;
+        """)
         bar_col.addWidget(self.xp_lbl)
         bar_col.addWidget(self.bar_bg)
 
@@ -154,10 +170,16 @@ class GymCalendar(QWidget):
         today_btn = QPushButton("✅  Log Today's Session")
         today_btn.setStyleSheet(f"""
             QPushButton {{
-                background: {C_GREEN}; color: #1e1e2e;
-                border-radius: 8px; padding: 8px; font-weight: bold;
+                background: transparent; 
+                color: {C_ACCENT};
+                border: 1px solid {C_ACCENT};
+                padding: 10px;
+                font-family: 'Consolas', 'Monospace', monospace;
+                text-transform: uppercase;
             }}
-            QPushButton:hover {{ background: #94d49a; }}
+            QPushButton:hover {{
+                background: rgba(0, 212, 255, 40);
+            }}
         """)
         today_btn.clicked.connect(self._log_today)
         layout.addWidget(today_btn)
@@ -449,7 +471,8 @@ class HealthTab(QWidget):
         outer.setSpacing(16)
 
         # Title + XP bar
-        title = h_label("❤️  Health", 20, bold=True, color=C_ACCENT)
+        title = h_label("HEALTH STATUS", 18, bold=True, color=C_ACCENT)
+        title.setStyleSheet(f"letter-spacing: 3px; border-bottom: 1px solid {C_ACCENT};")
         outer.addWidget(title)
 
         self.xp_bar = XPBar()
@@ -504,3 +527,12 @@ class HealthTab(QWidget):
         outer.addWidget(scroll)
 
         self.xp_bar.refresh()
+
+    def materialize(self):
+        self.setWindowOpacity(0)
+        self.anim = QPropertyAnimation(self, b"windowOpacity")
+        self.anim.setDuration(600)
+        self.anim.setStartValue(0.0)
+        self.anim.setEndValue(1.0)
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.anim.start()

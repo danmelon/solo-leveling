@@ -10,37 +10,48 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor, QFontDatabase
 
+# -- Matching Palette from Health Tab --
+C_BG       = "#050a0f"       # Deep Obsidian
+C_SIDEBAR  = "rgba(10, 25, 35, 240)" 
+C_ACCENT   = "#00d4ff"       # Electric Blue
+C_TEXT     = "#ffffff"
+C_MUTED    = "#507a8a"
+C_HOVER    = "rgba(0, 212, 255, 30)"
+C_SELECTED = "rgba(0, 212, 255, 60)"
 
 TREES = [
-    ("health",    "❤️  Health"),
-    ("knowledge", "📚  Knowledge"),
-    ("speech",    "🗣️  Speech"),
-    ("purpose",   "🚀  Purpose"),
-    ("finance",   "💰  Finance"),
+    ("health",    "STATUS: HEALTH"),
+    ("knowledge", "STATUS: KNOWLEDGE"),
+    ("speech",    "STATUS: SPEECH"),
+    ("purpose",   "STATUS: PURPOSE"),
+    ("finance",   "STATUS: FINANCE"),
 ]
 
-NAV_STYLE = """
-    QPushButton {
+NAV_STYLE = f"""
+    QPushButton {{
         background: transparent;
-        color: #cdd6f4;
+        color: {C_MUTED};
         border: none;
-        border-radius: 8px;
-        padding: 12px 16px;
+        border-left: 3px solid transparent;
+        padding: 15px 20px;
         text-align: left;
-        font-size: 14px;
-    }
-    QPushButton:hover {
-        background: #313244;
-    }
-    QPushButton:checked {
-        background: #45475a;
-        color: #cba6f7;
+        font-size: 12px;
         font-weight: bold;
-    }
+        letter-spacing: 1px;
+    }}
+    QPushButton:hover {{
+        background: {C_HOVER};
+        color: {C_TEXT};
+    }}
+    QPushButton:checked {{
+        background: {C_SELECTED};
+        color: {C_ACCENT};
+        border-left: 3px solid {C_ACCENT};
+    }}
 """
 
-SIDEBAR_STYLE = "background-color: #1e1e2e; border-right: 1px solid #313244;"
-MAIN_STYLE    = "background-color: #181825;"
+#SIDEBAR_STYLE = "background-color: #1e1e2e; border-right: 1px solid #313244;"
+#MAIN_STYLE    = "background-color: #181825;"
 
 
 class MainWindow(QMainWindow):
@@ -48,6 +59,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Life RPG")
         self.setMinimumSize(1100, 720)
+        self.setStyleSheet(f"background-color: {C_BG};")
 
         root = QWidget()
         root.setStyleSheet("background-color: #181825; color: #cdd6f4;")
@@ -58,28 +70,54 @@ class MainWindow(QMainWindow):
 
         # ── Sidebar ────────────────────────────────────────────────────────
         sidebar = QFrame()
-        sidebar.setFixedWidth(200)
-        sidebar.setStyleSheet(SIDEBAR_STYLE)
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(12, 24, 12, 24)
-        sidebar_layout.setSpacing(4)
+        sidebar.setFixedWidth(220)
+        sidebar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {C_SIDEBAR};
+                border-right: 1px solid {C_ACCENT};
+            }}
+        """)
+        # Add a subtle glow to the sidebar border
+        sidebar_shadow = QGraphicsDropShadowEffect()
+        sidebar_shadow.setBlurRadius(20)
+        sidebar_shadow.setColor(QColor(0, 212, 255, 40))
+        sidebar_shadow.setOffset(2, 0)
+        sidebar.setGraphicsEffect(sidebar_shadow)
 
-        title = QLabel("🖥️ The System")
-        title.setFont(QFont("Arial", 15, QFont.Weight.Bold))
-        title.setStyleSheet("color: #cba6f7; padding-bottom: 16px;")
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 24, 0, 24)
+        sidebar_layout.setSpacing(2)
+
+        # Title: Styled like a System Header
+        title = QLabel("THE SYSTEM")
+        title.setStyleSheet(f"""
+            color: {C_ACCENT}; 
+            padding: 10px; 
+            font-size: 18px; 
+            font-weight: bold;
+            letter-spacing: 4px;
+        """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(title)
 
+        # Decorative Subtitle
+        subtitle = QLabel("PLAYER: Dandelion (RANK E)") # Fun flavor text
+        subtitle.setStyleSheet(f"color: {C_MUTED}; font-size: 9px; padding-bottom: 20px;")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sidebar_layout.addWidget(subtitle)
+
+        # ── Stack (Main Content Area) ──────────────────────────────────────
+        self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background: transparent;") # Tabs handle their own BG
+        self._load_tabs()
+
+        '''
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet("color: #313244;")
         sidebar_layout.addWidget(sep)
         sidebar_layout.addSpacing(8)
-
-        # ── Stack ──────────────────────────────────────────────────────────
-        self.stack = QStackedWidget()
-        self.stack.setStyleSheet(MAIN_STYLE)
-        self._load_tabs()
+        '''
 
         # Nav buttons
         self.nav_buttons = []
@@ -93,6 +131,7 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append(btn)
 
         sidebar_layout.addStretch()
+        
         layout.addWidget(sidebar)
         layout.addWidget(self.stack)
 
