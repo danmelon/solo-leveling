@@ -1,0 +1,11 @@
+Foundation layer:
+
+    db.py > creates all tables on first run, including gym log, meditation log, objectives and trees.
+    models.py > all database read/write logic, XP levelling (with scaling difficulty).
+    main.py > launches everything, seeds data, dark theme.
+
+Health Tree:
+
+    trees/health.py > seeds 9 objectives across 3 tiers, and all 5 meditation types with full descriptions
+    ui/health_tab.py > full UI with gym calendar (click to toggle days), streak counter, meditation logger with info dialogs and an objective checklist that awards XP and triggers level-up popups.
+    
