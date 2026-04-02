@@ -8,4 +8,53 @@ Health Tree:
 
     trees/health.py > seeds 9 objectives across 3 tiers, and all 5 meditation types with full descriptions
     ui/health_tab.py > full UI with gym calendar (click to toggle days), streak counter, meditation logger with info dialogs and an objective checklist that awards XP and triggers level-up popups.
+
+
+Explanation of the files:
+
+db.py - database setup:
+    > The first file that runs when we launch the app. 
+    > init_db() creates all the tables if they do not already exist.
+        > IF NOT EXIST clause means it is safe to call every time the app starts without wiping our data.
+
+    get_connection():
+        > Small helper that every other file calls whenever it needs to talk to the database.
+        > The key line is conn.row_factory = sqlite3.Row
+            > Without this, SQLite returns plain tuples, meaning we'd have to access data by index like row[0].
+            > With it, we can access columns by name like row["date"] which makes the code much more readable.
+            > PRAGMA foreign_keys = ON tells SQLite to actually enforce the relationships between tables.
+
+    Schema:
+        > Has five tables:
+            > trees (one row per skill tree, storing level, XP)
+            > objectives (goals that belong to a tree)
+            > gmy_log (one row per day you went to the gym)
+            > meditation_types (the 5 types with their descriptions)
+            > meditation_log (each individual session you log)
+
+models.py - Data Access layer:
+    > The brain of the app. No UI lives here, it's purely ask the database to do something, get data back or write something to the database.
+    > Every UI component calls functions from here rather than writing SQL itself. Keeps things clean.
+        > If we ever want to change how data is stored, we only have to do it in one place.
     
+    XP & Leveling:
+        > add_xp() - fetches the tree, adds the XP then runs a while loop rather than an if.
+            > We do while loop so that if we ever earn enough XP to level up more than once in one go, it handles all the level-ups in sequence.
+            > Each time we level up, it scales xp_per_level by 1.2x so level 1 needs 100xp, level 2 needs 120xp, level 3 needs 144xp
+            > It returns the updated tree dict plus a levelled_up boolean so the UI knows whether to show the level-up popup.
+
+    Completing objectives:
+        > complete_objective() marks the obj done then calls add_xp().
+        > Checks if obj and not obj["completed"] before doing anything, so double checking an already completed objective doesn't award XP twice.
+
+    Gym streak:
+        > get_gym_streak() fetches all our gym logs ordered by most recent first, then walks backwards through them day by day starting from today.
+        > As long as each date matches the expected "next day back", the streak counter goes up.
+        > The moment there's a gap it stops.
+        > The date arithmetic handles month boundaries... block at the bottom of the code calcs what day yesterday was when at the 1st of the month.
+
+    Gym log toggle:
+        > log_gym() uses try/except around the INSERT rather than checking first.
+        > gym_log table has UNIQUE on the date column so inserting the same date twice throws an exception, which gets caught and returns FALSE.
+
+trees/health.py - Seed Data:
