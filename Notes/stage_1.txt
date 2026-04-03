@@ -58,3 +58,55 @@ models.py - Data Access layer:
         > gym_log table has UNIQUE on the date column so inserting the same date twice throws an exception, which gets caught and returns FALSE.
 
 trees/health.py - Seed Data:
+    > File just contains the content.
+        > List of meditation types and objectives, along with a seed() function that inserts them into the database.
+        > ON CONFLICT(name) DO NOTHING line makes it safe to call every time the app start:
+            > If the data already exists it silently skips the insert.
+        > For objectives:
+            > Rather than using that pattern, it checks if existing == 0 first and only seeds if the table is completely empty for that tree.
+
+        > Objectives designed in three tiers:
+            > Habit building, cosistency, and mastery.
+            > App does not formally group them (yet) - we use the sort_order column.
+
+        
+ui/health_tab.py - The Health UI:
+    XPBar:
+        > Reads the tree from the database and renders the level number and a progress bar.
+        > The bar width is calculated as a percentage of xp / xp_per_lvl, then scaled to the pixel width of the container.
+        > refresh() is called by other components every time XP changes.
+
+    GymCalendar:
+        > Builds monthly grid of buttons using Python's built-in calendar.monthcalendar().
+            > Retuns a list of weeks, each being a list of 7 day numbers with 0 for days outside the month.
+            > Each button is either green (logged), highlighted (today), or neutral.
+            > Clicking a button calls _toggle() which adds or removes the gym log for that date.
+                > Then calls refresh() to redraw the whole grid.
+            > Prev/next month buttons just change _year & _month attributes and call refresh().
+    
+    MeditationPanel:
+        > Has a dropdown (populated from the meditation types in db), duration spinner, optional notes field.
+        > When you log a session it calls models.log_meditation() and also directly awards 10XP via models.add_xp().
+            > This is separate from the objectives system, meaning we earn small XP just for meditating regardless of which milestone we're on.
+        > Info button opens MeditationInfoDialog which displays summary of text for whichever type is selected.
+    
+    ObjectivesPanel:
+        > Renders each objective as a row with a checkbox button, title, description and XP reward.
+        > _toggle() method checks whether the objective is already completed
+            > If it is, clicking uncompletes it & no XP refund (currently).
+            > If it is newly completed, it calls complete_objective() and checks returned dict for levelled_up to decide whether to show the popup.
+    
+    HealthTab:
+        > Just assembles all of these widgets into a two-column layout inside a scroll area and calls xp_bar.refresh() on load.
+
+
+ui/main_window.py - App Shell:
+    > Sets up sidebar & QStackedWidget, which is PyQt's way of having multiple pages, where only one is visible at a time.
+    > Each nav button calls _switch(index), which tells the stack which page to show and updates which button appears as selected.
+    > Tabs are loaded in _load_tabs() - currently only Health is built out, while the others remain as placeholder.
+
+main.py - Entry Point:
+    > db.init_db() creates tables.
+    > seed_all_trees() populates them with starting data.
+    > PyQt app launches.
+        > If we tried to seed before the tables existed it would crash.
